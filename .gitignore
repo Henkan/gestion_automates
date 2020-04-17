@@ -1,0 +1,9 @@
+*.slo
+*.o
+*.obj
+
+cmake-build-debug
+
+*.exe
+
+.idea/
