@@ -16,3 +16,11 @@ State::~State() {}
 std::string & State::getName() {
     return m_name;
 }
+
+bool State::isInitial() {
+    return m_isInitial;
+}
+
+bool State::isFinal() {
+    return m_isFinal;
+}

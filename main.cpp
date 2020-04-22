@@ -8,6 +8,8 @@ const int AUTOMATON_FILE_PARAM = 2;
 const int WORDS_FILE_PARAM = 3;
 const int OUT_FILE_PARAM = 4;
 
+const std::vector<int> ACCEPTED_MODES {0, 1};
+
 int main(int argc, char* argv[]) {
     //Parse arguments
     if (argc < 5) {
@@ -26,14 +28,36 @@ int main(int argc, char* argv[]) {
     std::cout << "Words file: " << argv[WORDS_FILE_PARAM] << "\n";
     std::cout << "Output file: " << argv[OUT_FILE_PARAM] << "\n";
 
-    // Create automaton from file
-    Automaton a = Automaton(argv[AUTOMATON_FILE_PARAM]);
-    std::vector<std::string> words = AutomatonManager::readWordListFromFile(argv[WORDS_FILE_PARAM]);
-    std::vector<bool> results;
-    for(std::vector<std::string>::iterator it = words.begin(); it != words.end(); ++it) {
-        results.push_back(a.isWordAccepted(*it));
+    int modeParam = std::atoi(argv[MODE_PARAM]);
+    if(std::find(ACCEPTED_MODES.begin(), ACCEPTED_MODES.end(), modeParam) != ACCEPTED_MODES.end()) {
+        // Mode is accepted
+        // Create automaton from file
+        Automaton a = Automaton(argv[AUTOMATON_FILE_PARAM]);
+
+        switch(modeParam) {
+            case 0: {
+                // Test automaton
+                std::vector<std::string> words = AutomatonManager::readWordListFromFile(argv[WORDS_FILE_PARAM]);
+                std::vector<bool> results;
+                for (std::vector<std::string>::iterator it = words.begin(); it != words.end(); ++it) {
+                    results.push_back(a.isWordAccepted(*it));
+                }
+
+                AutomatonManager::writeResultsToFile(results, argv[OUT_FILE_PARAM]);
+                break;
+            }
+            case 1: {
+                // Minimize automaton
+                std::cout << "Not yet implemented.\n";
+                a.minimizeDeterministicAutomaton();
+                a.saveToFile(argv[OUT_FILE_PARAM]);
+                break;
+            }
+        }
+    } else {
+        std::cerr << "The given mode parameter is invalid.\n";
+        exit(1);
     }
 
-    AutomatonManager::writeResultsToFile(results, argv[OUT_FILE_PARAM]);
     //TODO: Automaton -> set instead of vector ? (with name)
 }

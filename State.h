@@ -16,6 +16,8 @@ public:
     State();
     State(bool p_isInitial, bool p_isFinal, std::string p_name);
     std::string& getName();
+    bool isInitial();
+    bool isFinal();
     virtual ~State();
 };
 
