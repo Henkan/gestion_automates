@@ -1,13 +1,9 @@
-//
-// Created by Sylvain on 31/03/2020.
-//
-
 #ifndef ALGORITHMIQUE_TRANSITION_H
 #define ALGORITHMIQUE_TRANSITION_H
 
-#include <string>
-
 #include "State.h"
+
+#include <string>
 
 class Transition {
 private:

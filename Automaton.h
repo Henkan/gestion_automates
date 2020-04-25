@@ -3,12 +3,13 @@
 
 #include "State.h"
 #include "Transition.h"
+#include "utils.h"
 
 #include <string>
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include "utils.h"
+#include <algorithm>
 
 class Automaton {
 private:
@@ -20,7 +21,6 @@ private:
 public:
     Automaton(std::string p_alphabet, std::vector<State> p_states, std::vector<Transition> p_transitions, std::vector<int> p_idxFinal, int p_idxInitial);
     Automaton(std::string filename);
-    virtual ~Automaton();
     std::string& getAlphabet();
     bool isWordAccepted(std::string word);
     void saveToFile(std::string filename);
