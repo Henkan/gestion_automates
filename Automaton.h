@@ -15,7 +15,6 @@ private:
     std::string m_alphabet;
     std::vector<State> m_states;
     std::vector<Transition> m_transitions;
-    //int m_idxFinal;
     std::vector<int> m_idxFinal;
     int m_idxInitial;
 public:
@@ -26,6 +25,7 @@ public:
     bool isWordAccepted(std::string word);
     void saveToFile(std::string filename);
     void minimizeDeterministicAutomaton();
+    void makeDeterministic();
 };
 
 

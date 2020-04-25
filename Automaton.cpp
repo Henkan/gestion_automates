@@ -8,17 +8,15 @@ Automaton::Automaton(std::string p_alphabet, std::vector<State> p_states, std::v
     : m_alphabet(p_alphabet), m_states(p_states), m_transitions(p_transitions), m_idxFinal(p_idxFinal), m_idxInitial(p_idxInitial)
 {}
 
-Automaton::Automaton(std::string filename) {
+Automaton::Automaton(std::string filename)
+    : m_alphabet(""), m_states(std::vector<State>()), m_transitions(std::vector<Transition>()), m_idxFinal(std::vector<int>()), m_idxInitial(-1)
+{
     std::ifstream file(filename);
     std::string line;
     std::string alphabet;
     int nbStates;
     int nbTransitions;
-    m_states = std::vector<State>();
-    m_transitions = std::vector<Transition>();
     std::vector<std::string> transitionPerState;
-    int idxInitial(-1);
-    std::vector<int> idxFinal;
 
     if (file.is_open()) {
         //Alphabet is on first line
@@ -31,15 +29,14 @@ Automaton::Automaton(std::string filename) {
         for(int i = 0; i < nbStates; ++i) {
             // State
             getline(file, line);
-            std::cout << line << "\n";
             m_states.push_back(State(line[0] == '1', line[2] == '1', std::to_string(i)));
 
             // Store initial and final states
             if (line[0] == '1') {
-                idxInitial = i;
+                m_idxInitial = i;
             }
             if (line[2] == '1') {
-                idxFinal.push_back(i);
+                m_idxFinal.push_back(i);
             }
             // Transitions
             getline(file, line);
@@ -64,12 +61,9 @@ Automaton::Automaton(std::string filename) {
             m_transitions.push_back(Transition(std::string(1, trans[j][2]), &m_states[i], &m_states[atoi(&trans[j][0])]));
         }
     }
-    m_idxFinal = idxFinal;
-    m_idxInitial = idxInitial;
 }
 
-Automaton::~Automaton() {
-}
+Automaton::~Automaton() {}
 
 std::string& Automaton::getAlphabet() {
     return m_alphabet;
@@ -288,4 +282,86 @@ void Automaton::minimizeDeterministicAutomaton() {
     }
     m_idxFinal = finalStates;
     m_idxInitial = initialState;
+}
+
+void Automaton::makeDeterministic() {
+    std::vector<std::string> statesQueue;
+    statesQueue.push_back(m_states.at(m_idxInitial).getName() + ","); // State format is the number followed by a comma e.g. 0,1,
+    std::string currentState;
+    std::string destinationState;
+    std::vector<std::string> alreadyTreated; // States that were already done
+    std::vector<std::string>::iterator it;
+    std::vector<std::vector<std::string>> matrix; // One column per state with one line per character of the alphabet. Contains the destination state
+
+    while(!statesQueue.empty()) {
+        // Get next state
+        currentState = statesQueue.front();
+        statesQueue.erase(statesQueue.begin());
+        destinationState = "";
+        alreadyTreated.push_back(currentState);
+        matrix.push_back(std::vector<std::string>());
+
+        std::vector<std::string> states = splitString(currentState, ',');
+        // For each letter
+        for(int a = 0; a < m_alphabet.size(); ++a) {
+            // For each state in the string
+            for(int i = 0; i < states.size(); ++i) {
+                // Get transition
+                for(std::vector<Transition>::iterator tra_it = m_transitions.begin(); tra_it != m_transitions.end(); ++tra_it) {
+                    if (tra_it->getStateFrom() == &m_states.at(std::stoi(states.at(i))) && tra_it->getLabel() == std::string( 1,m_alphabet.at(a))) {
+                        // Matching transition
+                        destinationState += tra_it->getStateTo()->getName() + ",";
+                    }
+                }
+            }
+
+            // Store corresponding destination state
+            it = std::find(alreadyTreated.begin(), alreadyTreated.end(), destinationState);
+            if (it == alreadyTreated.end() && destinationState != "") {
+                statesQueue.push_back(destinationState);
+            }
+            matrix.at(matrix.size() - 1).push_back(destinationState);
+            destinationState = "";
+        }
+    }
+
+    //Handle initial & final
+    std::vector<bool> finals;
+    std::vector<bool> initials;
+    for (int i = 0; i < alreadyTreated.size(); ++i) {
+        // Initial
+        if (alreadyTreated.at(i) == std::to_string(m_idxInitial) + ",") {
+            initials.push_back(true);
+            m_idxInitial = i;
+        } else {
+            initials.push_back(false);
+        }
+
+        // Final
+        finals.push_back(false);
+        for (int j = 0; j < m_idxFinal.size(); ++j) {
+            if (alreadyTreated.at(i).find(std::to_string(m_idxFinal.at(j))) != std::string::npos) {
+                finals.at(finals.size() - 1) = true;
+                break;
+            }
+        }
+    }
+
+    // Create states
+    m_states = std::vector<State>();
+    m_transitions = std::vector<Transition>();
+    for (int i = 0; i < alreadyTreated.size(); ++i) {
+        m_states.push_back(State(initials.at(i), finals.at(i), std::to_string(i)));
+    }
+
+    // Create transitions
+    // For each state
+    for (int i = 0; i < matrix.size(); ++i) {
+        // For each letter of alphabet
+        for (int j = 0; j < matrix.at(i).size(); ++j) {
+            it = std::find(alreadyTreated.begin(), alreadyTreated.end(), matrix.at(i).at(j));
+            m_transitions.push_back(Transition(std::string(1, m_alphabet.at(j)), &m_states.at(i),
+                                               &m_states.at(std::distance(alreadyTreated.begin(), it))));
+        }
+    }
 }
