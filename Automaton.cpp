@@ -456,7 +456,7 @@ void Automaton::mergeEquivalentStates() {
                     m_transitions.at(i).setStateTo(fusionState);
                 }
                 if (m_transitions.at(i).getStateFrom() == initialState) {
-                    // Transitions from inital state now go from fusion state
+                    // Transitions from initial state now go from fusion state
                     m_transitions.at(i).setStateFrom(fusionState);
                 }
                 if (m_transitions.at(i).getLabel() == "#" &&
@@ -475,6 +475,15 @@ void Automaton::mergeEquivalentStates() {
             // Set initial and final
             fusionState->setFinal(initialState->isFinal() | fusionState->isFinal());
             fusionState->setInitial(initialState->isInitial() | fusionState->isInitial());
+
+            // Get index of initial file to delete
+            int toDelete(-1);
+            for (int i = 0; i < m_states.size(); ++i) {
+                if (m_states.at(i).getName() == initialState->getName()) {
+                    toDelete = i;
+                    break;
+                }
+            }
 
             // Create strings of updated transitions in order to re-create them
             // except for initial state since he has no more transitions
@@ -495,13 +504,6 @@ void Automaton::mergeEquivalentStates() {
             }
 
             // Delete initial state since it is now fusion
-            int toDelete(-1);
-            for (int i = 0; i < m_states.size(); ++i) {
-                if (m_states.at(i).getName() == initialState->getName()) {
-                    toDelete = i;
-                    break;
-                }
-            }
             m_states.erase(m_states.begin() + toDelete);
 
             // Update transitions vector
@@ -513,8 +515,15 @@ void Automaton::mergeEquivalentStates() {
                 split = splitString(transitionStrings.at(i), '\n');
                 for (int j = 0; j < split.size(); ++j) {
                     lineSplit = splitString(split.at(j), ' ');
-                    m_transitions.push_back(
-                            Transition(lineSplit.at(1), &m_states.at(i), &m_states.at(std::stoi(lineSplit.at(0)) - 1)));
+                    if (std::stoi(lineSplit.at(0)) > toDelete) {
+                        m_transitions.push_back(
+                                Transition(lineSplit.at(1), &m_states.at(i),
+                                           &m_states.at(std::stoi(lineSplit.at(0)) - 1)));
+                    } else {
+                        m_transitions.push_back(
+                                Transition(lineSplit.at(1), &m_states.at(i),
+                                           &m_states.at(std::stoi(lineSplit.at(0)))));
+                    }
                 }
             }
 
