@@ -12,9 +12,10 @@ private:
     State* m_stateTo;
 public:
     Transition(std::string p_label, State* p_stateFrom, State* p_StateTo);
-    virtual ~Transition();
     State* getStateFrom();
+    void setStateFrom(State* from);
     State* getStateTo();
+    void setStateTo(State* to);
     std::string& getLabel();
 };
 

@@ -5,7 +5,7 @@
 const int MODE_PARAM = 1;
 const int AUTOMATON_FILE_PARAM = 2;
 
-const std::vector<int> ACCEPTED_MODES{0, 1, 2};
+const std::vector<int> ACCEPTED_MODES{0, 1, 2, 3};
 
 int main(int argc, char *argv[]) {
     //Parse arguments
@@ -65,6 +65,12 @@ int main(int argc, char *argv[]) {
                 std::cout << "Writing new automaton to " << argv[3] << "...\n";
                 automaton.saveToFile(argv[3]);
                 break;
+            }
+            case 3: {
+                std::cout << "Merging equivalent states from epsilon-transitions...\n";
+                automaton.mergeEquivalentStates();
+                std::cout << "Writing new automaton to " << argv[3] << "...\n";
+                automaton.saveToFile(argv[3]);
             }
         }
     } else {

@@ -17,15 +17,41 @@ private:
     std::vector<State> m_states;
     std::vector<Transition> m_transitions;
     std::vector<int> m_idxFinal;
-    int m_idxInitial;
+    std::vector<int> m_idxInitial;
+   // int m_idxInitial;
 public:
-    Automaton(std::string p_alphabet, std::vector<State> p_states, std::vector<Transition> p_transitions, std::vector<int> p_idxFinal, int p_idxInitial);
+    /**
+     * Construct the automaton from a file.
+     * @param filename The file which contains the description of the automaton.
+     */
     Automaton(std::string filename);
-    std::string& getAlphabet();
+
+    /**
+     * Test a word against the automaton to see if it's accepted.
+     * @param word the word to test
+     * @return true if word is accepted, false otherwise
+     */
     bool isWordAccepted(std::string word);
+
+    /**
+     * Write the automaton to the specified file.
+     * @param filename The file to which the automaton will be written.
+     */
     void saveToFile(std::string filename);
+
+    /**
+     * Minimize the automaton. Only works if the automaton is deterministic.
+     */
     void minimizeDeterministicAutomaton();
+
+    /**
+     * Make the automaton deterministic.
+     */
     void makeDeterministic();
+
+    void mergeEquivalentStates();
+
+    std::vector<Transition> getEpsilonTransitions(State* state);
 };
 
 

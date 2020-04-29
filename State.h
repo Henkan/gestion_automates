@@ -16,9 +16,11 @@ public:
     State();
     State(bool p_isInitial, bool p_isFinal, std::string p_name);
     std::string& getName();
+    void setName(std::string name);
     bool isInitial();
+    void setInitial(bool initial);
     bool isFinal();
-    virtual ~State();
+    void setFinal(bool final);
 };
 
 

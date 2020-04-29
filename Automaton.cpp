@@ -1,13 +1,8 @@
 #include "Automaton.h"
 
-Automaton::Automaton(std::string p_alphabet, std::vector<State> p_states, std::vector<Transition> p_transitions,
-                     std::vector<int> p_idxFinal, int p_idxInitial)
-        : m_alphabet(p_alphabet), m_states(p_states), m_transitions(p_transitions), m_idxFinal(p_idxFinal),
-          m_idxInitial(p_idxInitial) {}
-
 Automaton::Automaton(std::string filename)
         : m_alphabet(""), m_states(std::vector<State>()), m_transitions(std::vector<Transition>()),
-          m_idxFinal(std::vector<int>()), m_idxInitial(-1) {
+          m_idxFinal(std::vector<int>()), m_idxInitial(std::vector<int>()) {
     /**
      * Create an automaton from a file.
      */
@@ -33,7 +28,7 @@ Automaton::Automaton(std::string filename)
 
             // Store initial and final states
             if (line.at(0) == '1') {
-                m_idxInitial = i;
+                m_idxInitial.push_back(i);
             }
             if (line.at(2) == '1') {
                 m_idxFinal.push_back(i);
@@ -44,7 +39,7 @@ Automaton::Automaton(std::string filename)
             transitionPerState.push_back("");
             for (int j = 0; j < nbTransitions; ++j) {
                 getline(file, line);
-                transitionPerState[i] += line + "\n";
+                transitionPerState.at(i) += line + "\n";
             }
         }
         file.close();
@@ -55,18 +50,17 @@ Automaton::Automaton(std::string filename)
 
     // Create transitions object
     std::string token;
+    std::vector<std::string> elements;
     for (int i = 0; i < transitionPerState.size(); ++i) {
         std::vector<std::string> trans = splitString(transitionPerState.at(i), '\n');
         for (int j = 0; j < trans.size(); ++j) {
-            m_transitions.push_back(
-                    Transition(std::string(1, trans.at(j).at(2)), &m_states[i], &m_states[atoi(&trans[j][0])]));
-
+            elements = splitString(trans.at(j), ' ');
+            if (elements.at(1) != "#" || i != std::stoi(elements.at(0))) {
+                m_transitions.push_back(
+                        Transition(elements.at(1), &m_states.at(i), &m_states.at(std::stoi(elements.at(0)))));
+            }
         }
     }
-}
-
-std::string &Automaton::getAlphabet() {
-    return m_alphabet;
 }
 
 bool Automaton::isWordAccepted(std::string word) {
@@ -75,7 +69,11 @@ bool Automaton::isWordAccepted(std::string word) {
      */
     std::vector<State *> currentStates;
     std::vector<State *> tempStates;
-    currentStates.push_back(&m_states[m_idxInitial]);
+    //currentStates.push_back(&m_states.at(m_idxInitial));
+    for(int i = 0; i < m_idxInitial.size(); ++i) {
+        currentStates.push_back(&m_states.at(i));
+    }
+    //TODO: vector of initial index
 
     bool stop(false);
     // Test for each letter of the word
@@ -84,13 +82,13 @@ bool Automaton::isWordAccepted(std::string word) {
         stop = true;
         for (int i = 0; i < m_transitions.size(); ++i) {
             //Each possible state
-            if (m_transitions[i].getLabel() == std::string(1, *str_it)) {
+            if (m_transitions.at(i).getLabel() == std::string(1, *str_it)) {
                 //Transition has correct label
                 for (int j = 0; j < currentStates.size(); ++j) {
-                    if (m_transitions[i].getStateFrom() == currentStates[j]) {
+                    if (m_transitions.at(i).getStateFrom() == currentStates.at(j)) {
                         //There is a match
                         stop = false;
-                        tempStates.push_back(m_transitions[i].getStateTo());
+                        tempStates.push_back(m_transitions.at(i).getStateTo());
                     }
                 }
             }
@@ -252,13 +250,15 @@ void Automaton::minimizeDeterministicAutomaton() {
 
     // Get class of final and initial states
     std::vector<int> finalStates;
+    std::vector<int> initialStates;
     for (int i = 0; i < m_idxFinal.size(); ++i) {
         it = std::find(finalStates.begin(), finalStates.end(), matrix.at(matrixLastColumn).at(m_idxFinal.at(i)));
         if (it == finalStates.end()) {
             finalStates.push_back(matrix.at(matrixLastColumn).at(m_idxFinal.at(i)));
         }
     }
-    int initialState(matrix.at(matrixLastColumn).at(m_idxInitial));
+    int initialState(matrix.at(matrixLastColumn).at(m_idxInitial.at(0)));
+    initialStates.push_back(initialState);
 
     //Create states objects
     m_states.clear();
@@ -292,7 +292,7 @@ void Automaton::minimizeDeterministicAutomaton() {
         }
     }
     m_idxFinal = finalStates;
-    m_idxInitial = initialState;
+    m_idxInitial = initialStates;
 }
 
 void Automaton::makeDeterministic() {
@@ -300,8 +300,13 @@ void Automaton::makeDeterministic() {
      * Make the automaton deterministic.
      */
     std::vector<std::string> statesQueue;
-    statesQueue.push_back(
-            m_states.at(m_idxInitial).getName() + ","); // State format is the number followed by a comma e.g. 0,1,
+    std::string initial;
+    for(int i = 0; i < m_idxInitial.size(); ++i) {
+        initial += m_states.at(m_idxInitial.at(i)).getName() + ",";
+    }
+    statesQueue.push_back(initial);
+    //statesQueue.push_back(
+    //        m_states.at(m_idxInitial).getName() + ","); // State format is the number followed by a comma e.g. 0,1,
     std::string currentState;
     std::string destinationState;
     std::vector<std::string> alreadyTreated; // States that were already done
@@ -350,20 +355,30 @@ void Automaton::makeDeterministic() {
     //Handle initial & final
     std::vector<bool> finals;
     std::vector<bool> initials;
+    std::vector<int> tmpIdxFinal;
+    std::vector<int> tmpIdxInitial;
     for (int i = 0; i < alreadyTreated.size(); ++i) {
         // Initial
-        if (alreadyTreated.at(i) == std::to_string(m_idxInitial) + ",") {
+        if (alreadyTreated.at(i) == initial) {
+            initials.push_back(true);
+            tmpIdxInitial.push_back(i);
+        } else {
+            initials.push_back(false);
+        }
+        /*if (alreadyTreated.at(i) == std::to_string(m_idxInitial) + ",") {
             initials.push_back(true);
             m_idxInitial = i;
         } else {
             initials.push_back(false);
-        }
+        }*/
 
         // Final
         finals.push_back(false);
         for (int j = 0; j < m_idxFinal.size(); ++j) {
             if (alreadyTreated.at(i).find(std::to_string(m_idxFinal.at(j))) != std::string::npos) {
+                // State contains at least one final state of the initial automaton
                 finals.at(finals.size() - 1) = true;
+                tmpIdxFinal.push_back(i);
                 break;
             }
         }
@@ -386,4 +401,147 @@ void Automaton::makeDeterministic() {
                                                &m_states.at(std::distance(alreadyTreated.begin(), it))));
         }
     }
+
+    m_idxInitial = tmpIdxInitial;
+    m_idxFinal = tmpIdxFinal;
+}
+
+void Automaton::mergeEquivalentStates() {
+    State* initialState = &m_states.at(m_idxInitial.at(0));
+    State* currentState = initialState;
+    std::vector<State*> searchedStates;
+    std::vector<State*> queue;
+    queue.push_back(initialState);
+    std::vector<Transition> transitionsOfState;
+    std::vector<State*>::iterator it;
+
+    int loop = 0;
+
+    bool cycleFound;
+    do {
+        cycleFound = false;
+        do {
+            // Look for a cycle
+            currentState = queue.front();
+            queue.erase(queue.begin());
+            transitionsOfState = getEpsilonTransitions(currentState);
+            // No epsilon transition so no cycle anyway
+            if (!transitionsOfState.empty()) {
+                for (int i = 0; i < transitionsOfState.size(); ++i) {
+                    // No epsilon transition on state after this epsilon transition, so no cycle anyway on this state
+                    if (!getEpsilonTransitions(transitionsOfState.at(i).getStateTo()).empty()) {
+                        if (transitionsOfState.at(i).getStateTo() == initialState) {
+                            // Cycle found
+                            cycleFound = true;
+                            break;
+                        }
+                        // Add state if never searched
+                        if (std::find(searchedStates.begin(), searchedStates.end(),
+                                      transitionsOfState.at(i).getStateTo()) == searchedStates.end()) {
+                            searchedStates.push_back(transitionsOfState.at(i).getStateTo());
+                            queue.push_back(transitionsOfState.at(i).getStateTo());
+                        }
+                    }
+                }
+            }
+        } while (!cycleFound && !queue.empty());
+
+        State *fusionState = searchedStates.front();
+        if (cycleFound) {
+            // Fusion initial state & first state of queue
+            // Adapt corresponding transitions
+            for (int i = 0; i < m_transitions.size(); ++i) {
+                if (m_transitions.at(i).getStateTo() == initialState) {
+                    // Transitions going to initialState now go to new fusion state
+                    m_transitions.at(i).setStateTo(fusionState);
+                }
+                if (m_transitions.at(i).getStateFrom() == initialState) {
+                    // Transitions from inital state now go from fusion state
+                    m_transitions.at(i).setStateFrom(fusionState);
+                }
+                if (m_transitions.at(i).getLabel() == "#" &&
+                    m_transitions.at(i).getStateTo() == m_transitions.at(i).getStateFrom()) {
+                    // Useless recursive e-transition, needs to be removed
+                    m_transitions.at(i).setStateTo(nullptr);
+                    m_transitions.at(i).setStateFrom(nullptr);
+                }
+            }
+            // Remove recursive e-transitions
+            m_transitions.erase(std::remove_if(
+                    m_transitions.begin(), m_transitions.end(),
+                    [](Transition &tra) { return (tra.getStateFrom() == nullptr || tra.getStateTo() == nullptr); }
+            ), m_transitions.end());
+
+            // Set initial and final
+            fusionState->setFinal(initialState->isFinal() | fusionState->isFinal());
+            fusionState->setInitial(initialState->isInitial() | fusionState->isInitial());
+
+            // Create strings of updated transitions in order to re-create them
+            // except for initial state since he has no more transitions
+            std::vector<std::string> transitionStrings;
+            std::string transition;
+            for (int i = 0; i < m_states.size(); ++i) {
+                transition = "";
+                if (m_states.at(i).getName() != initialState->getName()) {
+                    for (int j = 0; j < m_transitions.size(); ++j) {
+                        if (m_transitions.at(j).getStateFrom() == &m_states.at(i)) {
+                            transition += (m_transitions.at(j).getStateTo()->getName() + " " +
+                                           m_transitions.at(j).getLabel() +
+                                           "\n");
+                        }
+                    }
+                    transitionStrings.push_back(transition);
+                }
+            }
+
+            // Delete initial state since it is now fusion
+            int toDelete(-1);
+            for (int i = 0; i < m_states.size(); ++i) {
+                if (m_states.at(i).getName() == initialState->getName()) {
+                    toDelete = i;
+                    break;
+                }
+            }
+            m_states.erase(m_states.begin() + toDelete);
+
+            // Update transitions vector
+            // Since state was deleted, all index are changed in array so transition pointer points to wrong state
+            m_transitions = std::vector<Transition>();
+            std::vector<std::string> split;
+            std::vector<std::string> lineSplit;
+            for (int i = 0; i < transitionStrings.size(); ++i) {
+                split = splitString(transitionStrings.at(i), '\n');
+                for (int j = 0; j < split.size(); ++j) {
+                    lineSplit = splitString(split.at(j), ' ');
+                    m_transitions.push_back(
+                            Transition(lineSplit.at(1), &m_states.at(i), &m_states.at(std::stoi(lineSplit.at(0)) - 1)));
+                }
+            }
+
+            //Update states label to match new index
+            for (int i = 0; i < m_states.size(); ++i) {
+                if (m_states.at(i).getName() != std::to_string(i)) {
+                    m_states.at(i).setName(std::to_string(i));
+                }
+            }
+        } // end if cycleFound
+
+        // Cleanup for possible next round
+        initialState = &m_states.at(0);
+        currentState = initialState;
+        searchedStates.clear();
+        queue.clear();
+        queue.push_back(currentState);
+        transitionsOfState.clear();
+    } while(cycleFound);
+}
+
+std::vector<Transition> Automaton::getEpsilonTransitions(State *state) {
+    std::vector<Transition> transitions;
+    for(int i = 0; i < m_transitions.size(); ++i) {
+        if (m_transitions.at(i).getStateFrom() == state && m_transitions.at(i).getLabel() == "#") {
+            transitions.push_back(m_transitions.at(i));
+        }
+    }
+    return transitions;
 }
