@@ -1,6 +1,6 @@
 #include "Automaton.h"
 
-Automaton::Automaton(std::string filename)
+Automaton::Automaton(const std::string &filename)
         : m_alphabet(""), m_states(std::vector<State>()), m_transitions(std::vector<Transition>()),
           m_idxFinal(std::vector<int>()), m_idxInitial(std::vector<int>()) {
     std::ifstream file(filename);
@@ -45,14 +45,15 @@ Automaton::Automaton(std::string filename)
         exit(1);
     }
 
-    // Create transitions object
+    // Create transitions object from strings and link them to corresponding state
     std::string token;
     std::vector<std::string> elements;
     for (int i = 0; i < transitionPerState.size(); ++i) {
-        std::vector<std::string> trans = splitString(transitionPerState.at(i), '\n');
-        for (int j = 0; j < trans.size(); ++j) {
-            elements = splitString(trans.at(j), ' ');
+        std::vector<std::string> listTransitions = splitString(transitionPerState.at(i), '\n');
+        for (int j = 0; j < listTransitions.size(); ++j) {
+            elements = splitString(listTransitions.at(j), ' ');
             if (elements.at(1) != "#" || i != std::stoi(elements.at(0))) {
+                // Don't add recursive epsilon transitions
                 m_transitions.push_back(
                         Transition(elements.at(1), &m_states.at(i), &m_states.at(std::stoi(elements.at(0)))));
             }
@@ -70,7 +71,7 @@ bool Automaton::isWordAccepted(std::string word) {
     bool stop(false);
     // Test for each letter of the word
     for (std::string::iterator str_it = word.begin(); str_it != word.end(); ++str_it) {
-        //Transitions of state
+        // Get transitions of state
         stop = true;
         for (int i = 0; i < m_transitions.size(); ++i) {
             //Each possible state
@@ -78,7 +79,7 @@ bool Automaton::isWordAccepted(std::string word) {
                 //Transition has correct label
                 for (int j = 0; j < currentStates.size(); ++j) {
                     if (m_transitions.at(i).getStateFrom() == currentStates.at(j)) {
-                        //There is a match
+                        // There is a match
                         stop = false;
                         tempStates.push_back(m_transitions.at(i).getStateTo());
                     }
@@ -87,14 +88,15 @@ bool Automaton::isWordAccepted(std::string word) {
         }
         // Stop if no transition corresponds to the letter
         if (stop) return false;
-        // Update current states for non-deterministic
+
+        // Update current states
         currentStates = tempStates;
         tempStates.clear();
     }
 
     bool accepted(false);
-    for (int i = 0; i < currentStates.size(); ++i) {
-        if (currentStates.at(i)->isFinal()) {
+    for (std::vector<State *>::iterator it = currentStates.begin(); it != currentStates.end(); ++it) {
+        if ((*it)->isFinal()) {
             accepted = true;
             break;
         }
@@ -137,7 +139,7 @@ void Automaton::saveToFile(std::string filename) {
 void Automaton::minimizeDeterministicAutomaton() {
     std::vector<std::vector<int>> matrix; // Contains the table of the Moore algorithm
     std::vector<int> column; // Contains one column being created
-    std::vector<int> classColumn; // Contains the column containing the "states" (it's ~0, ~1 etc)
+    std::vector<int> classColumn; // Contains the column containing the "states" (~0, ~1 etc.)
     bool fillClassColumn(true);
 
     // Fill with state label
@@ -146,8 +148,10 @@ void Automaton::minimizeDeterministicAutomaton() {
         for (std::vector<State>::iterator state_it = m_states.begin(); state_it != m_states.end(); ++state_it) {
             // Get corresponding transition
             if (fillClassColumn) {
+                // Only fill the class column once
                 classColumn.push_back(state_it->isFinal());
             }
+            // Fill column
             for (std::vector<Transition>::iterator trans_it = m_transitions.begin();
                  trans_it != m_transitions.end(); ++trans_it) {
                 if (trans_it->getLabel() == std::string(1, *alph_it) && trans_it->getStateFrom() == &(*state_it)) {
@@ -163,17 +167,18 @@ void Automaton::minimizeDeterministicAutomaton() {
     matrix.push_back(classColumn);
     classColumn.clear();
 
-    // First columns are created
-    // Now we need to fill the other ones until the end
+    // First columns are created (up to ~0)
+    // Now we need to fill the other ones until the end of the algorithm
     int index(0);
     int classColumnIndex(m_alphabet.size());
     std::vector<std::string> newClasses; // Contains the newly created "classes" (~1 etc)
     std::vector<std::string> classes; // Contains the classes created just before
 
-    //Initialize class string
+    // Initialize class string array
     for (int i = 0; i < matrix.at(0).size(); ++i) {
         classes.push_back("");
     }
+    // Create classes string
     for (int i = 0; i < matrix.size(); ++i) {
         for (int j = 0; j < matrix.at(i).size(); ++j) {
             classes.at(j) += std::to_string(matrix.at(i).at(j));
@@ -243,6 +248,7 @@ void Automaton::minimizeDeterministicAutomaton() {
             finalStates.push_back(matrix.at(matrixLastColumn).at(m_idxFinal.at(i)));
         }
     }
+    // Deterministic automaton so only one initial state
     int initialState(matrix.at(matrixLastColumn).at(m_idxInitial.at(0)));
     initialStates.push_back(initialState);
 
@@ -262,7 +268,7 @@ void Automaton::minimizeDeterministicAutomaton() {
         m_states.push_back(State(initial, final, std::to_string(states.at(i))));
     }
 
-    // Create transitions
+    // Create transitions objects
     for (int i = 0; i < matrix.at(matrix.size() - 1).size(); ++i) {
         if (std::find(states.begin(), states.end(), matrix.at(matrix.size() - 1).at(i)) != states.end()) {
             // Transitions of the state are not yet created
@@ -277,23 +283,25 @@ void Automaton::minimizeDeterministicAutomaton() {
             }
         }
     }
+    // Update automaton
     m_idxFinal = finalStates;
     m_idxInitial = initialStates;
 }
 
 void Automaton::makeDeterministic() {
-    std::vector<std::string> statesQueue;
+    std::vector<std::string> statesQueue; // Queue of states
     std::string initial;
+    // Create string of initial states
     for (int i = 0; i < m_idxInitial.size(); ++i) {
-        initial += m_states.at(m_idxInitial.at(i)).getName() + ",";
+        initial += m_states.at(m_idxInitial.at(i)).getName() +
+                   ","; // State format is the number followed by a comma e.g. 0,1,
     }
     statesQueue.push_back(initial);
-    //statesQueue.push_back(
-    //        m_states.at(m_idxInitial).getName() + ","); // State format is the number followed by a comma e.g. 0,1,
+
     std::string currentState;
     std::string destinationState;
     std::vector<std::string> alreadyTreated; // States that were already done
-    std::vector<std::string>::iterator it;
+    std::vector<std::string>::iterator it; // Just some iterator used for std::find later on
     std::vector<std::string>::iterator it2;
     std::vector<std::vector<std::string>> matrix; // One column per state with one line per character of the alphabet. Contains the destination state
 
@@ -361,7 +369,7 @@ void Automaton::makeDeterministic() {
         }
     }
 
-    // Create states
+    // Create states objects
     m_states = std::vector<State>();
     m_transitions = std::vector<Transition>();
     for (int i = 0; i < alreadyTreated.size(); ++i) {
@@ -373,18 +381,20 @@ void Automaton::makeDeterministic() {
     for (int i = 0; i < matrix.size(); ++i) {
         // For each letter of alphabet
         for (int j = 0; j < matrix.at(i).size(); ++j) {
+            // Get new index of the destination state
             it = std::find(alreadyTreated.begin(), alreadyTreated.end(), matrix.at(i).at(j));
             m_transitions.push_back(Transition(std::string(1, m_alphabet.at(j)), &m_states.at(i),
                                                &m_states.at(std::distance(alreadyTreated.begin(), it))));
         }
     }
 
+    // Update automaton
     m_idxInitial = tmpIdxInitial;
     m_idxFinal = tmpIdxFinal;
 }
 
 void Automaton::mergeEquivalentStates() {
-    //WOLOLO
+    // Store states with epsilon transition to check if they make a cycle
     std::vector<State *> statesToTry;
     for (int i = 0; i < m_states.size(); ++i) {
         if (!getEpsilonTransitions(&m_states.at(i)).empty()) {
@@ -392,8 +402,7 @@ void Automaton::mergeEquivalentStates() {
         }
     }
 
-    //WOAW
-    State *initialState = statesToTry.at(0);//&m_states.at(m_idxInitial.at(0));
+    State *initialState = statesToTry.at(0);
     State *currentState = initialState;
     std::vector<State *> searchedStates;
     std::vector<State *> queue;
@@ -411,7 +420,7 @@ void Automaton::mergeEquivalentStates() {
             currentState = queue.front();
             queue.erase(queue.begin());
             transitionsOfState = getEpsilonTransitions(currentState);
-            // No epsilon transition so no cycle anyway
+            // If no epsilon transition, no cycle anyway
             if (!transitionsOfState.empty()) {
                 for (int i = 0; i < transitionsOfState.size(); ++i) {
                     // No epsilon transition on state after this epsilon transition, so no cycle anyway on this state
@@ -421,7 +430,7 @@ void Automaton::mergeEquivalentStates() {
                             cycleFound = true;
                             break;
                         }
-                        // Add state if never searched
+                        // Add state if never searched before and has epsilon transitions
                         if (std::find(searchedStates.begin(), searchedStates.end(),
                                       transitionsOfState.at(i).getStateTo()) == searchedStates.end()) {
                             searchedStates.push_back(transitionsOfState.at(i).getStateTo());
@@ -452,7 +461,7 @@ void Automaton::mergeEquivalentStates() {
                     m_transitions.at(i).setStateFrom(nullptr);
                 }
             }
-            // Remove recursive e-transitions
+            // Remove recursive e-transitions tagged with nullptr
             m_transitions.erase(std::remove_if(
                     m_transitions.begin(), m_transitions.end(),
                     [](Transition &tra) { return (tra.getStateFrom() == nullptr || tra.getStateTo() == nullptr); }
@@ -502,6 +511,7 @@ void Automaton::mergeEquivalentStates() {
                 for (int j = 0; j < split.size(); ++j) {
                     lineSplit = splitString(split.at(j), ' ');
                     if (std::stoi(lineSplit.at(0)) > toDelete) {
+                        // Need to adjust index of state since the removal moves the objects to the left
                         m_transitions.push_back(
                                 Transition(lineSplit.at(1), &m_states.at(i),
                                            &m_states.at(std::stoi(lineSplit.at(0)) - 1)));
@@ -539,7 +549,7 @@ void Automaton::mergeEquivalentStates() {
             queue.push_back(currentState);
             transitionsOfState.clear();
         }
-    } while (!statesToTry.empty()/*cycleFound*/);
+    } while (!statesToTry.empty());
 
     //Update initial & final
     m_idxInitial.clear();
@@ -559,6 +569,7 @@ void Automaton::removeEpsilonTransitions() {
     State *destinationState;
     std::vector<Transition> transitionsToAdd;
     std::vector<Transition> epsilonTransitions;
+    std::vector<Transition>::iterator it;
     int toDelete(-1);
 
     // Get a state with epsilon transition
@@ -580,13 +591,28 @@ void Automaton::removeEpsilonTransitions() {
             currentState->setFinal(destinationState->isFinal() | currentState->isFinal());
 
             for (int j = 0; j < m_transitions.size(); ++j) {
-                // Each transition going to current state go to destination
+                // Each transition going to current state are copied and go to destination state
                 if (m_transitions.at(j).getStateTo() == currentState && m_transitions.at(j).getLabel() != "#") {
-                    transitionsToAdd.push_back(
-                            Transition(m_transitions.at(j).getLabel(), m_transitions.at(j).getStateFrom(),
-                                       destinationState));
+
+                    // Check if transition to add doesn't already exist
+                    bool addTransition = true;
+                    for (int t = 0; t < m_transitions.size(); ++t) {
+                        if (m_transitions.at(t).getLabel() == m_transitions.at(j).getLabel() &&
+                            m_transitions.at(t).getStateFrom() == m_transitions.at(j).getStateFrom() &&
+                            m_transitions.at(t).getStateTo() == destinationState) {
+                            addTransition = false;
+                            break;
+                        }
+                    }
+
+                    if (addTransition) {
+                        m_transitions.push_back(
+                                Transition(m_transitions.at(j).getLabel(), m_transitions.at(j).getStateFrom(),
+                                           destinationState));
+                    }
                 }
-                // The transition corresponds to the current epsilon transation so it will be deleted
+
+                // The transition corresponds to the current epsilon transition so it will be deleted
                 if (m_transitions.at(j).getStateTo() == epsilonTransitions.at(i).getStateTo() &&
                     m_transitions.at(j).getStateFrom() == epsilonTransitions.at(i).getStateFrom()
                     && m_transitions.at(j).getLabel() == "#") {
@@ -608,8 +634,6 @@ void Automaton::removeEpsilonTransitions() {
             }
         }
     }
-
-    m_transitions.insert(m_transitions.end(), transitionsToAdd.begin(), transitionsToAdd.end());
 }
 
 std::vector<Transition> Automaton::getEpsilonTransitions(State *state) {

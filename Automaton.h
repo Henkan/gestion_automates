@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <set>
 
 class Automaton {
 private:
@@ -23,7 +24,7 @@ public:
      * Construct the automaton from a file.
      * @param filename The file which contains the description of the automaton.
      */
-    Automaton(std::string filename);
+    Automaton(const std::string &filename);
 
     /**
      * Test a word against the automaton to see if it's accepted.
@@ -63,8 +64,7 @@ public:
      * @param state A pointer to the state
      * @return The list of transitions
      */
-    std::vector<Transition> getEpsilonTransitions(State* state);
+    std::vector<Transition> getEpsilonTransitions(State *state);
 };
-
 
 #endif //ALGORITHMIQUE_AUTOMATON_H

@@ -10,16 +10,19 @@ const std::vector<int> ACCEPTED_MODES{0, 1, 2, 3};
 int main(int argc, char *argv[]) {
     //Parse arguments
     if (argc < 4) {
+        // Not enough args, print usage
         std::cerr << "The program expects at least 3 arguments, only " << --argc << " were given.\n";
-        std::cerr << "Usage: lanceur <mode> <automaton_file> <words_file> <out_file>\n";
-        std::cerr << "With:\n";
-        std::cerr << "\tmode\t\t0 to test the automaton against words\n";
-        std::cerr << "\t\t\t1 to minimize the automaton\n";
-        std::cerr << "\t\t\t2 to make the automaton deterministic\n";
-        std::cerr << "\tautomaton_file\ta text file containing the description of the automaton\n";
-        std::cerr
+        std::cout << "Usage: lanceur <mode> <automaton_file> <words_file> <out_file>\n";
+        std::cout << "With:\n";
+        std::cout << "\tmode\t\t0 to test the automaton against words\n";
+        std::cout << "\t\t\t1 to minimize the automaton\n";
+        std::cout << "\t\t\t2 to make the automaton deterministic\n";
+        std::cout << "\t\t\t3 to remove epsilon transitions\n";
+        std::cout << "\tautomaton_file\ta text file containing the description of the automaton\n";
+        std::cout
                 << "\twords_file\ta text file containing the words to test against the automaton (only needed for mode 0)\n";
-        std::cerr << "\tout_file\tfile to write the output\n";
+        std::cout << "\tout_file\tfile to write the output\n";
+        std::cout << "\tAny additional parameter or file will not be used.\n";
         return 1;
     }
 
@@ -84,4 +87,5 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "Done.\n";
+    std::cout << "Have a nice day\n";
 }

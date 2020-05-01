@@ -5,13 +5,24 @@ Travail réalisé:
     - Les AFN sont pris en charge
     - Minimisation des AFD
     - Déterminisation des AFN
-    - Gestion des epsilon-transition
+    - Gestion des epsilon-transitions
         - Fusion des états équivalents
         - Suppression des e-transitions
 
+    La grande majorité du programme se situe dans Automaton.cpp, la classe qui représente un automate.
+    Chaque point du travail réalisé & cité plus haut est représenté par une fonction de la classe Automaton.
+    Les classes State et Transition servent simplement de conteneurs avec les getter et setter nécessaires.
+    Quelques remarques sur le programme:
+        - Le format du fichier contenant les automates n'est pas vérifié. Si le fichier est mal formé, le programme plantera.
+        - Lors de la fusion des états équivalents (gestion des e-transitions), il est possible que des transitions déjà existantes soient néanmoins créées à nouveau.
+
 Pour compiler:
+    Prérequis:
+        - CMake version >= 14
+        - Compilateur C++ 11 (gcc)
+        - GNU Make
     S'assurer que CMakeLists.txt et les fichiers .h et .cpp soient bien dans le même répertoire
-    Utiliser la commande suivante pour créer le makefile avec cmake
+    Une fois dans le répertoire, utiliser la commande suivante pour créer le makefile avec cmake
         cmake .
     Compiler avec make
         make
