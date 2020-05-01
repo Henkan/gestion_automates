@@ -1,0 +1,33 @@
+Projet d'Algorithmique - Gestion d'automates finis
+
+Travail réalisé:
+    - Les AFD sont pris en charge
+    - Les AFN sont pris en charge
+    - Minimisation des AFD
+    - Déterminisation des AFN
+    - Gestion des epsilon-transition
+        - Fusion des états équivalents
+        - Suppression des e-transitions
+
+Pour compiler:
+    S'assurer que CMakeLists.txt et les fichiers .h et .cpp soient bien dans le même répertoire
+    Utiliser la commande suivante pour créer le makefile avec cmake
+        cmake .
+    Compiler avec make
+        make
+    L'exécutable `lanceur` est créé et peut être appelé avec
+        ./lanceur <args>
+
+Utilisation:
+    Lancer le programme avec trop peu ou pas d'arguments renseigne comment l'utiliser
+    Pour tester un automate sur une liste de mots et écrire les résultats dans un fichier:
+        lanceur 0 automate.txt mots.txt resultats.txt
+    Pour minimiser un AFD et écrire le nouvel automate dans un fichier:
+        lanceur 1 automate.txt nouvel_automate.txt
+    Pour déterminiser un AFN et écrire le nouvel automate dans un fichier:
+        lanceur 2 automate.txt nouvel_automate.txt
+    Pour supprimer les epsilon-transitions et écrire le nouvel automate dans un fichier:
+        lanceur 3 automate.txt nouvel_automate.txt
+
+Auteur:
+    Sylvain Roncoroni - 3A CFA

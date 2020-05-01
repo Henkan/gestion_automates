@@ -18,7 +18,6 @@ private:
     std::vector<Transition> m_transitions;
     std::vector<int> m_idxFinal;
     std::vector<int> m_idxInitial;
-   // int m_idxInitial;
 public:
     /**
      * Construct the automaton from a file.
@@ -53,6 +52,11 @@ public:
      * Merge equivalent states based on cycles of epsilon transitions.
      */
     void mergeEquivalentStates();
+
+    /**
+     * Remove epsilon transitions.
+     */
+    void removeEpsilonTransitions();
 
     /**
      * Get all the epsilon transitions of a given state.

@@ -3,9 +3,6 @@
 Automaton::Automaton(std::string filename)
         : m_alphabet(""), m_states(std::vector<State>()), m_transitions(std::vector<Transition>()),
           m_idxFinal(std::vector<int>()), m_idxInitial(std::vector<int>()) {
-    /**
-     * Create an automaton from a file.
-     */
     std::ifstream file(filename);
     std::string line;
     std::string alphabet;
@@ -64,13 +61,9 @@ Automaton::Automaton(std::string filename)
 }
 
 bool Automaton::isWordAccepted(std::string word) {
-    /**
-     * Test a word against the automaton.
-     */
     std::vector<State *> currentStates;
     std::vector<State *> tempStates;
-    //currentStates.push_back(&m_states.at(m_idxInitial));
-    for(int i = 0; i < m_idxInitial.size(); ++i) {
+    for (int i = 0; i < m_idxInitial.size(); ++i) {
         currentStates.push_back(&m_states.at(m_idxInitial.at(i)));
     }
 
@@ -111,9 +104,6 @@ bool Automaton::isWordAccepted(std::string word) {
 }
 
 void Automaton::saveToFile(std::string filename) {
-    /**
-     * Write automaton to a file.
-     */
     std::ofstream file(filename);
     int nbTransitions(0);
     std::string tmpStr;
@@ -145,9 +135,6 @@ void Automaton::saveToFile(std::string filename) {
 }
 
 void Automaton::minimizeDeterministicAutomaton() {
-    /**
-     * Minimize the automaton.
-     */
     std::vector<std::vector<int>> matrix; // Contains the table of the Moore algorithm
     std::vector<int> column; // Contains one column being created
     std::vector<int> classColumn; // Contains the column containing the "states" (it's ~0, ~1 etc)
@@ -295,12 +282,9 @@ void Automaton::minimizeDeterministicAutomaton() {
 }
 
 void Automaton::makeDeterministic() {
-    /**
-     * Make the automaton deterministic.
-     */
     std::vector<std::string> statesQueue;
     std::string initial;
-    for(int i = 0; i < m_idxInitial.size(); ++i) {
+    for (int i = 0; i < m_idxInitial.size(); ++i) {
         initial += m_states.at(m_idxInitial.at(i)).getName() + ",";
     }
     statesQueue.push_back(initial);
@@ -401,21 +385,21 @@ void Automaton::makeDeterministic() {
 
 void Automaton::mergeEquivalentStates() {
     //WOLOLO
-    std::vector<State*> statesToTry;
-    for(int i = 0; i < m_states.size(); ++i) {
+    std::vector<State *> statesToTry;
+    for (int i = 0; i < m_states.size(); ++i) {
         if (!getEpsilonTransitions(&m_states.at(i)).empty()) {
             statesToTry.push_back(&m_states.at(i));
         }
     }
 
     //WOAW
-    State* initialState = statesToTry.at(0);//&m_states.at(m_idxInitial.at(0));
-    State* currentState = initialState;
-    std::vector<State*> searchedStates;
-    std::vector<State*> queue;
+    State *initialState = statesToTry.at(0);//&m_states.at(m_idxInitial.at(0));
+    State *currentState = initialState;
+    std::vector<State *> searchedStates;
+    std::vector<State *> queue;
     queue.push_back(initialState);
     std::vector<Transition> transitionsOfState;
-    std::vector<State*>::iterator it;
+    std::vector<State *>::iterator it;
 
     int loop = 0;
 
@@ -448,8 +432,8 @@ void Automaton::mergeEquivalentStates() {
             }
         } while (!cycleFound && !queue.empty());
 
-        State *fusionState = searchedStates.front();
         if (cycleFound) {
+            State *fusionState = searchedStates.front();
             // Fusion initial state & first state of queue
             // Adapt corresponding transitions
             for (int i = 0; i < m_transitions.size(); ++i) {
@@ -538,7 +522,7 @@ void Automaton::mergeEquivalentStates() {
 
             //Update states to try
             statesToTry.clear();
-            for(int i = 0; i < m_states.size(); ++i) {
+            for (int i = 0; i < m_states.size(); ++i) {
                 if (!getEpsilonTransitions(&m_states.at(i)).empty()) {
                     statesToTry.push_back(&m_states.at(i));
                 }
@@ -555,12 +539,12 @@ void Automaton::mergeEquivalentStates() {
             queue.push_back(currentState);
             transitionsOfState.clear();
         }
-    } while(!statesToTry.empty()/*cycleFound*/);
+    } while (!statesToTry.empty()/*cycleFound*/);
 
     //Update initial & final
     m_idxInitial.clear();
     m_idxFinal.clear();
-    for(int i = 0; i < m_states.size(); ++i) {
+    for (int i = 0; i < m_states.size(); ++i) {
         if (m_states.at(i).isInitial()) {
             m_idxInitial.push_back(i);
         }
@@ -570,12 +554,70 @@ void Automaton::mergeEquivalentStates() {
     }
 }
 
-std::vector<Transition> Automaton::getEpsilonTransitions(State *state) {
-    std::vector<Transition> transitions;
-    for(int i = 0; i < m_transitions.size(); ++i) {
-        if (m_transitions.at(i).getStateFrom() == state && m_transitions.at(i).getLabel() == "#") {
-            transitions.push_back(m_transitions.at(i));
+void Automaton::removeEpsilonTransitions() {
+    State *currentState;
+    State *destinationState;
+    std::vector<Transition> transitionsToAdd;
+    std::vector<Transition> epsilonTransitions;
+    int toDelete(-1);
+
+    // Get a state with epsilon transition
+    for (int i = 0; i < m_states.size(); ++i) {
+        epsilonTransitions = getEpsilonTransitions(&m_states.at(i));
+        if (!epsilonTransitions.empty()) {
+            currentState = &m_states.at(i);
+            break;
         }
     }
-    return transitions;
+
+    while (!epsilonTransitions.empty()) {
+
+        for (int i = 0; i < epsilonTransitions.size(); ++i) {
+            destinationState = epsilonTransitions.at(i).getStateTo();
+
+            // Update final and initial
+            destinationState->setInitial(destinationState->isInitial() | currentState->isInitial());
+            currentState->setFinal(destinationState->isFinal() | currentState->isFinal());
+
+            for (int j = 0; j < m_transitions.size(); ++j) {
+                // Each transition going to current state go to destination
+                if (m_transitions.at(j).getStateTo() == currentState && m_transitions.at(j).getLabel() != "#") {
+                    transitionsToAdd.push_back(
+                            Transition(m_transitions.at(j).getLabel(), m_transitions.at(j).getStateFrom(),
+                                       destinationState));
+                }
+                // The transition corresponds to the current epsilon transation so it will be deleted
+                if (m_transitions.at(j).getStateTo() == epsilonTransitions.at(i).getStateTo() &&
+                    m_transitions.at(j).getStateFrom() == epsilonTransitions.at(i).getStateFrom()
+                    && m_transitions.at(j).getLabel() == "#") {
+                    toDelete = j;
+                }
+            }
+            // Remove corresponding epsilon transition
+            m_transitions.erase(m_transitions.begin() + toDelete);
+        }
+
+        // Get new list of epsilon transitions and corresponding state
+        toDelete = -1;
+        epsilonTransitions.clear();
+        for (int i = 0; i < m_states.size(); ++i) {
+            epsilonTransitions = getEpsilonTransitions(&m_states.at(i));
+            if (!epsilonTransitions.empty()) {
+                currentState = &m_states.at(i);
+                break;
+            }
+        }
+    }
+
+    m_transitions.insert(m_transitions.end(), transitionsToAdd.begin(), transitionsToAdd.end());
+}
+
+std::vector<Transition> Automaton::getEpsilonTransitions(State *state) {
+    std::vector<Transition> epsilonTransitions;
+    for (int i = 0; i < m_transitions.size(); ++i) {
+        if (m_transitions.at(i).getStateFrom() == state && m_transitions.at(i).getLabel() == "#") {
+            epsilonTransitions.push_back(m_transitions.at(i));
+        }
+    }
+    return epsilonTransitions;
 }

@@ -67,10 +67,15 @@ int main(int argc, char *argv[]) {
                 break;
             }
             case 3: {
+                // Remove epsilon transitions
+                std::cout << "HANDLE EPSILON TRANSITIONS\n";
                 std::cout << "\tMerging equivalent states from epsilon-transitions...\n";
                 automaton.mergeEquivalentStates();
+                std::cout << "\tRemoving remaining epsilon transitions...\n";
+                automaton.removeEpsilonTransitions();
                 std::cout << "\tWriting new automaton to " << argv[3] << "...\n";
                 automaton.saveToFile(argv[3]);
+                break;
             }
         }
     } else {
@@ -78,5 +83,5 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    std::cout << "Done.";
+    std::cout << "Done.\n";
 }
