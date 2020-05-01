@@ -49,8 +49,16 @@ public:
      */
     void makeDeterministic();
 
+    /**
+     * Merge equivalent states based on cycles of epsilon transitions.
+     */
     void mergeEquivalentStates();
 
+    /**
+     * Get all the epsilon transitions of a given state.
+     * @param state A pointer to the state
+     * @return The list of transitions
+     */
     std::vector<Transition> getEpsilonTransitions(State* state);
 };
 

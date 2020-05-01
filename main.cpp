@@ -51,25 +51,25 @@ int main(int argc, char *argv[]) {
             case 1: {
                 // Minimize automaton
                 std::cout << "MINIMIZE AUTOMATON\n";
-                std::cout << "Performing minimization...\n";
+                std::cout << "\tPerforming minimization...\n";
                 automaton.minimizeDeterministicAutomaton();
-                std::cout << "Writing new automaton to " << argv[3] << "...\n";
+                std::cout << "\tWriting new automaton to " << argv[3] << "...\n";
                 automaton.saveToFile(argv[3]);
                 break;
             }
             case 2: {
                 // Make deterministic
                 std::cout << "MAKE DETERMINISTIC\n";
-                std::cout << "Performing determination...\n";
+                std::cout << "\tPerforming determination...\n";
                 automaton.makeDeterministic();
-                std::cout << "Writing new automaton to " << argv[3] << "...\n";
+                std::cout << "\tWriting new automaton to " << argv[3] << "...\n";
                 automaton.saveToFile(argv[3]);
                 break;
             }
             case 3: {
-                std::cout << "Merging equivalent states from epsilon-transitions...\n";
+                std::cout << "\tMerging equivalent states from epsilon-transitions...\n";
                 automaton.mergeEquivalentStates();
-                std::cout << "Writing new automaton to " << argv[3] << "...\n";
+                std::cout << "\tWriting new automaton to " << argv[3] << "...\n";
                 automaton.saveToFile(argv[3]);
             }
         }

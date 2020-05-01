@@ -71,9 +71,8 @@ bool Automaton::isWordAccepted(std::string word) {
     std::vector<State *> tempStates;
     //currentStates.push_back(&m_states.at(m_idxInitial));
     for(int i = 0; i < m_idxInitial.size(); ++i) {
-        currentStates.push_back(&m_states.at(i));
+        currentStates.push_back(&m_states.at(m_idxInitial.at(i)));
     }
-    //TODO: vector of initial index
 
     bool stop(false);
     // Test for each letter of the word
@@ -365,12 +364,6 @@ void Automaton::makeDeterministic() {
         } else {
             initials.push_back(false);
         }
-        /*if (alreadyTreated.at(i) == std::to_string(m_idxInitial) + ",") {
-            initials.push_back(true);
-            m_idxInitial = i;
-        } else {
-            initials.push_back(false);
-        }*/
 
         // Final
         finals.push_back(false);
@@ -407,7 +400,16 @@ void Automaton::makeDeterministic() {
 }
 
 void Automaton::mergeEquivalentStates() {
-    State* initialState = &m_states.at(m_idxInitial.at(0));
+    //WOLOLO
+    std::vector<State*> statesToTry;
+    for(int i = 0; i < m_states.size(); ++i) {
+        if (!getEpsilonTransitions(&m_states.at(i)).empty()) {
+            statesToTry.push_back(&m_states.at(i));
+        }
+    }
+
+    //WOAW
+    State* initialState = statesToTry.at(0);//&m_states.at(m_idxInitial.at(0));
     State* currentState = initialState;
     std::vector<State*> searchedStates;
     std::vector<State*> queue;
@@ -533,16 +535,39 @@ void Automaton::mergeEquivalentStates() {
                     m_states.at(i).setName(std::to_string(i));
                 }
             }
+
+            //Update states to try
+            statesToTry.clear();
+            for(int i = 0; i < m_states.size(); ++i) {
+                if (!getEpsilonTransitions(&m_states.at(i)).empty()) {
+                    statesToTry.push_back(&m_states.at(i));
+                }
+            }
         } // end if cycleFound
 
         // Cleanup for possible next round
-        initialState = &m_states.at(0);
-        currentState = initialState;
-        searchedStates.clear();
-        queue.clear();
-        queue.push_back(currentState);
-        transitionsOfState.clear();
-    } while(cycleFound);
+        if (!statesToTry.empty()) {
+            initialState = statesToTry.front();
+            statesToTry.erase(statesToTry.begin());
+            currentState = initialState;
+            searchedStates.clear();
+            queue.clear();
+            queue.push_back(currentState);
+            transitionsOfState.clear();
+        }
+    } while(!statesToTry.empty()/*cycleFound*/);
+
+    //Update initial & final
+    m_idxInitial.clear();
+    m_idxFinal.clear();
+    for(int i = 0; i < m_states.size(); ++i) {
+        if (m_states.at(i).isInitial()) {
+            m_idxInitial.push_back(i);
+        }
+        if (m_states.at(i).isFinal()) {
+            m_idxFinal.push_back(i);
+        }
+    }
 }
 
 std::vector<Transition> Automaton::getEpsilonTransitions(State *state) {
